@@ -4,3 +4,5 @@ brightsky.env
 config
 
 !/api.brightsky.dev/*
+
+.idea/

@@ -38,7 +38,7 @@ securityContext: {}
 
 service:
   type: ClusterIP
-  port: 80
+  port: 5000
 
 ingress:
   enabled: false
@@ -82,12 +82,23 @@ tolerations: []
 
 affinity: {}
 
+
+startData: "2020-01-01"
+
+
 externalDatabase:
   host: ""
   port: ""
   database: ""
   user: ""
   password: ""
+
+externalRedis:
+  host: ""
+  port: ""
+  username: ""
+  password: ""
+
 
 postgresql:
 
@@ -134,11 +145,12 @@ postgresql:
     enabled: true
 
 redis:
+  enabled: true
 
-  external:
-    host: ""
-    port: ""
-  enabled: false
+  replica:
+    ## @param replica.replicaCount Number of Redis(TM) replicas to deploy
+    ##
+    replicaCount: 0
 
   auth:
     enabled: false

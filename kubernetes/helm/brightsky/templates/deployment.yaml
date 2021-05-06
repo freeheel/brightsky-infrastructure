@@ -34,7 +34,7 @@ spec:
             'until pg_isready -h {{ include "brightsky.databaseHost" . }} -p {{ include "brightsky.databasePort" . }};
                       do echo waiting for database; sleep 2; done;' ]
       containers:
-        - name: {{ .Chart.Name }}
+        - name: {{ .Chart.Name }}-worker
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
 
@@ -49,9 +49,55 @@ spec:
             {{- if not .Values.postgresql.enabled }}
               value: "{{ .Values.postgres.external.connection.url}}"
             {{- end }}
+            - name: BRIGHTSKY_REDIS_URL
+            {{- if .Values.redis.enabled }}
+              value: 'redis://{{ include "brightsky.redis.fullname" . }}-master'
+            {{- end }}
+            {{- if not .Values.redis.enabled }}
+              value: 'redis://{{ .Values.externalRedis.host}}'
+            {{- end }}
+            - name: BRIGHTSKY_MIN_DATE
+              value: '{{- default "2020-01-01" .Values.startData }}'
           ports:
             - name: http
               containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          args: [ "serve --bind 0.0.0.0:5000"]
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: BRIGHTSKY_DATABASE_URL
+            {{- if .Values.postgresql.enabled }}
+              value: 'postgres://{{ include "brightsky.databaseUser" . }}:{{ include "brightsky.databasePassword" . }}@{{ include "brightsky.databaseHost" . }}:{{ include "brightsky.databasePort" . }}'
+            {{- end }}
+            {{- if not .Values.postgresql.enabled }}
+              value: "{{ .Values.postgres.external.connection.url}}"
+            {{- end }}
+            - name: BRIGHTSKY_REDIS_URL
+            {{- if .Values.redis.enabled }}
+              value: 'redis://{{ include "brightsky.redis.fullname" . }}-master'
+            {{- end }}
+            {{- if not .Values.redis.enabled }}
+              value: 'redis://{{ .Values.externalRedis.host}}'
+            {{- end }}
+            - name: BRIGHTSKY_MIN_DATE
+              value: '{{- default "2020-01-01" .Values.startData }}'
+          ports:
+            - name: http
+              containerPort: 5000
               protocol: TCP
           livenessProbe:
             httpGet:
